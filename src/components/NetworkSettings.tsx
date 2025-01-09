@@ -39,7 +39,7 @@ export function NetworkSettings({ settings, onSettingsChange }: NetworkSettingsP
   const handleSettingChange = (
     network: keyof Settings['networks'],
     setting: keyof NetworkSettings,
-    value: number
+    value: number | boolean
   ) => {
     onSettingsChange({
       ...settings,
@@ -54,94 +54,131 @@ export function NetworkSettings({ settings, onSettingsChange }: NetworkSettingsP
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-      <h2 className="text-xl font-semibold text-gray-900 mb-6">Network Settings</h2>
-      
-      <div className="grid grid-cols-5 gap-4 mb-8">
-        {Object.entries(NETWORK_ICONS).map(([network, icon]) => (
-          <div key={network} className="flex flex-col items-center">
-            <img
-              src={icon}
-              alt={`${network} logo`}
-              className="w-12 h-12 object-contain mb-2"
-            />
-            <span className="text-sm font-medium text-gray-900 mb-2">
-              {NETWORK_NAMES[network as keyof Settings['networks']]}
-            </span>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={settings.networks[network as keyof Settings['networks']].enabled}
-                onChange={() => handleNetworkToggle(network as keyof Settings['networks'])}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-            </label>
-          </div>
-        ))}
-      </div>
-
-      <div className="space-y-6">
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold">Network Settings</h2>
+      <div className="space-y-4">
         {Object.entries(settings.networks).map(([network, networkSettings]) => (
-          networkSettings.enabled && (
-            <div key={network} className="p-4 bg-gray-50 rounded-lg">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                {NETWORK_NAMES[network as keyof Settings['networks']]} Settings
-              </h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Minimum Price (ETH)
-                  </label>
-                  <input
-                    type="number"
-                    value={networkSettings.minPrice}
-                    onChange={(e) => handleSettingChange(
-                      network as keyof Settings['networks'],
-                      'minPrice',
-                      parseFloat(e.target.value)
-                    )}
-                    min="0"
-                    step="0.01"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  />
+          <div key={network} className="bg-white p-4 rounded-lg shadow">
+            <div className="flex items-center space-x-4">
+              <img
+                src={NETWORK_ICONS[network as keyof Settings['networks']]}
+                alt={network}
+                className="w-8 h-8"
+              />
+              <span className="font-semibold">
+                {NETWORK_NAMES[network as keyof Settings['networks']]}
+              </span>
+              <label className="flex items-center cursor-pointer ml-auto">
+                <input
+                  type="checkbox"
+                  checked={networkSettings.enabled}
+                  onChange={() => handleNetworkToggle(network as keyof Settings['networks'])}
+                  className="form-checkbox h-5 w-5 text-blue-600"
+                />
+              </label>
+            </div>
+            {networkSettings.enabled && (
+              <div className="mt-4 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Min Price (ETH)
+                    </label>
+                    <input
+                      type="number"
+                      value={networkSettings.minPrice}
+                      onChange={(e) =>
+                        handleSettingChange(
+                          network as keyof Settings['networks'],
+                          'minPrice',
+                          parseFloat(e.target.value)
+                        )
+                      }
+                      step="0.01"
+                      min="0"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Max Price (ETH)
+                    </label>
+                    <input
+                      type="number"
+                      value={networkSettings.maxPrice}
+                      onChange={(e) =>
+                        handleSettingChange(
+                          network as keyof Settings['networks'],
+                          'maxPrice',
+                          parseFloat(e.target.value)
+                        )
+                      }
+                      step="0.01"
+                      min="0"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Max Daily Buy Limit
+                    </label>
+                    <input
+                      type="number"
+                      value={networkSettings.maxDailyBuyLimit}
+                      onChange={(e) =>
+                        handleSettingChange(
+                          network as keyof Settings['networks'],
+                          'maxDailyBuyLimit',
+                          parseInt(e.target.value)
+                        )
+                      }
+                      min="0"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Max Offer Price (%)
+                    </label>
+                    <input
+                      type="number"
+                      value={networkSettings.maxOfferPrice}
+                      onChange={(e) =>
+                        handleSettingChange(
+                          network as keyof Settings['networks'],
+                          'maxOfferPrice',
+                          parseFloat(e.target.value)
+                        )
+                      }
+                      step="1"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Maximum Price (ETH)
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={networkSettings.buyFreeNFTs}
+                      onChange={(e) =>
+                        handleSettingChange(
+                          network as keyof Settings['networks'],
+                          'buyFreeNFTs',
+                          e.target.checked
+                        )
+                      }
+                      className="form-checkbox h-5 w-5 text-blue-600"
+                    />
+                    <span className="text-sm font-medium text-gray-700">
+                      Buy Free NFTs
+                    </span>
                   </label>
-                  <input
-                    type="number"
-                    value={networkSettings.maxPrice}
-                    onChange={(e) => handleSettingChange(
-                      network as keyof Settings['networks'],
-                      'maxPrice',
-                      parseFloat(e.target.value)
-                    )}
-                    min="0"
-                    step="0.01"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Max Daily Buy Limit
-                  </label>
-                  <input
-                    type="number"
-                    value={networkSettings.maxDailyBuyLimit}
-                    onChange={(e) => handleSettingChange(
-                      network as keyof Settings['networks'],
-                      'maxDailyBuyLimit',
-                      parseInt(e.target.value)
-                    )}
-                    min="1"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  />
                 </div>
               </div>
-            </div>
-          )
+            )}
+          </div>
         ))}
       </div>
     </div>

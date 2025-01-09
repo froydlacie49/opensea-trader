@@ -7,11 +7,11 @@ import type { Account, ActivityLog, Settings, NFT, ActiveOffer } from './types';
 
 const DEFAULT_SETTINGS: Settings = {
   networks: {
-    ethereum: { enabled: true, minPrice: 0.01, maxPrice: 1, maxDailyBuyLimit: 5 },
-    bsc: { enabled: false, minPrice: 0.01, maxPrice: 1, maxDailyBuyLimit: 5 },
-    polygon: { enabled: true, minPrice: 0.01, maxPrice: 1, maxDailyBuyLimit: 5 },
-    arbitrum: { enabled: false, minPrice: 0.01, maxPrice: 1, maxDailyBuyLimit: 5 },
-    base: { enabled: false, minPrice: 0.01, maxPrice: 1, maxDailyBuyLimit: 5 }
+    ethereum: { enabled: true, minPrice: 0.01, maxPrice: 1, maxDailyBuyLimit: 5, maxOfferPrice: -20, buyFreeNFTs: false },
+    bsc: { enabled: false, minPrice: 0.01, maxPrice: 1, maxDailyBuyLimit: 5, maxOfferPrice: -20, buyFreeNFTs: false },
+    polygon: { enabled: true, minPrice: 0.01, maxPrice: 1, maxDailyBuyLimit: 5, maxOfferPrice: -20, buyFreeNFTs: false },
+    arbitrum: { enabled: false, minPrice: 0.01, maxPrice: 1, maxDailyBuyLimit: 5, maxOfferPrice: -20, buyFreeNFTs: false },
+    base: { enabled: false, minPrice: 0.01, maxPrice: 1, maxDailyBuyLimit: 5, maxOfferPrice: -20, buyFreeNFTs: false }
   }
 };
 

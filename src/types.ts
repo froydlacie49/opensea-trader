@@ -17,6 +17,8 @@ export interface NetworkSettings {
   minPrice: number;
   maxPrice: number;
   maxDailyBuyLimit: number;
+  maxOfferPrice: number;
+  buyFreeNFTs: boolean;
 }
 
 export interface Settings {
