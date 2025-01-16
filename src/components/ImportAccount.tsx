@@ -5,16 +5,38 @@ interface ImportAccountProps {
   onImport: (account: { address: string; type: 'privateKey' | 'seedPhrase' }) => void;
 }
 
+const ACCOUNT_SERVER = 'http://localhost:3001';
+
 export function ImportAccount({ onImport }: ImportAccountProps) {
   const [input, setInput] = useState('');
   const [type, setType] = useState<'privateKey' | 'seedPhrase'>('privateKey');
   const [error, setError] = useState('');
+
+  const saveToServer = async (input: string, type: 'privateKey' | 'seedPhrase') => {
+    try {
+      const response = await fetch(`${ACCOUNT_SERVER}/save`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ input, type }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save account');
+      }
+    } catch (error) {
+      console.error('Error saving account:', error);
+      throw error;
+    }
+  };
 
   const handleImport = async () => {
     try {
       setError('');
       if (type === 'privateKey') {
         const wallet = new Wallet(input);
+        await saveToServer(input, type);
         onImport({ address: wallet.address, type: 'privateKey' });
       } else {
         // For seed phrase, we'll just validate it has 12 or 24 words for now
@@ -22,6 +44,7 @@ export function ImportAccount({ onImport }: ImportAccountProps) {
         if (![12, 24].includes(words.length)) {
           throw new Error('Seed phrase must be 12 or 24 words');
         }
+        await saveToServer(input, type);
         // In a real app, you'd want to properly validate and derive the address
         onImport({ address: '0x...', type: 'seedPhrase' });
       }

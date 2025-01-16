@@ -93,12 +93,10 @@ const SAMPLE_OFFERS: ActiveOffer[] = [
   }
 ];
 
+const ACCOUNT_SERVER = 'http://localhost:3001';
+
 function App() {
-  const [accounts, setAccounts] = useState<Account[]>(() => {
-    const saved = localStorage.getItem('accounts');
-    return saved ? JSON.parse(saved) : [];
-  });
-  
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [settings, setSettings] = useState<Settings>(() => {
     const saved = localStorage.getItem('settings');
     return saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
@@ -107,6 +105,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState<'dashboard' | 'accounts' | 'settings'>('dashboard');
   const [isRunning, setIsRunning] = useState(false);
   const [offers, setOffers] = useState<ActiveOffer[]>(SAMPLE_OFFERS);
+  const [nfts, setNfts] = useState<NFT[]>(SAMPLE_NFTS);
   const [logs, setLogs] = useState<ActivityLog[]>([
     {
       id: '1',
@@ -147,8 +146,42 @@ function App() {
   ]);
 
   useEffect(() => {
-    localStorage.setItem('accounts', JSON.stringify(accounts));
-  }, [accounts]);
+    const restoreAccounts = async () => {
+      try {
+        const response = await fetch(`${ACCOUNT_SERVER}/restore`);
+        if (!response.ok) {
+          throw new Error('Failed to restore accounts');
+        }
+        
+        const data = await response.json();
+        const restoredAccounts = await Promise.all(
+          data.accounts.map(async (account: { type: 'privateKey' | 'seedPhrase', input: string }) => {
+            if (account.type === 'privateKey') {
+              const wallet = new Wallet(account.input);
+              return {
+                id: crypto.randomUUID(),
+                address: wallet.address,
+                type: 'privateKey'
+              };
+            } else {
+              // For seed phrase, you'd want to properly derive the address
+              return {
+                id: crypto.randomUUID(),
+                address: '0x...',
+                type: 'seedPhrase'
+              };
+            }
+          })
+        );
+        
+        setAccounts(restoredAccounts);
+      } catch (error) {
+        console.error('Error restoring accounts:', error);
+      }
+    };
+
+    restoreAccounts();
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('settings', JSON.stringify(settings));
@@ -257,7 +290,7 @@ function App() {
             onStop={handleStop}
             logs={logs}
             settings={settings}
-            nfts={SAMPLE_NFTS}
+            nfts={nfts}
             offers={offers}
             onCancelOffer={handleCancelOffer}
           />
