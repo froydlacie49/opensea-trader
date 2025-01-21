@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Wallet, LayoutDashboard, Settings as SettingsIcon } from 'lucide-react';
 import { AccountsPage } from './pages/Accounts';
 import { DashboardPage } from './pages/Dashboard';
@@ -15,84 +15,6 @@ const DEFAULT_SETTINGS: Settings = {
   }
 };
 
-const SAMPLE_NFTS: NFT[] = [
-  {
-    id: '1',
-    name: 'Bored Ape #1234',
-    image: 'https://images.unsplash.com/photo-1614812513172-567d2fe96a75?w=800',
-    network: 'ethereum',
-    purchaseTime: Date.now() - 86400000,
-    purchasePrice: 0.5,
-    ownerAddress: '0x1234567890abcdef1234567890abcdef12345678'
-  },
-  {
-    id: '2',
-    name: 'Cool Cat #4567',
-    image: 'https://images.unsplash.com/photo-1543852786-1cf6624b9987?w=800',
-    network: 'polygon',
-    purchaseTime: Date.now() - 172800000,
-    purchasePrice: 0.2,
-    ownerAddress: '0x1234567890abcdef1234567890abcdef12345678'
-  },
-  {
-    id: '3',
-    name: 'Doodle #7890',
-    image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800',
-    network: 'ethereum',
-    purchaseTime: Date.now() - 259200000,
-    purchasePrice: 0.8,
-    ownerAddress: '0x1234567890abcdef1234567890abcdef12345678'
-  }
-];
-
-const SAMPLE_OFFERS: ActiveOffer[] = [
-  {
-    id: '1',
-    collectionName: 'DeGods',
-    itemNumber: '2156',
-    floorPrice: 8.95,
-    offerAmount: 8.75,
-    offerTime: Date.now() - 2 * 60 * 60 * 1000, // 2 hours ago
-    network: 'ethereum'
-  },
-  {
-    id: '2',
-    collectionName: 'Pudgy Penguins',
-    itemNumber: '4521',
-    floorPrice: 6.49,
-    offerAmount: 6.2,
-    offerTime: Date.now() - 5 * 60 * 60 * 1000, // 5 hours ago
-    network: 'ethereum'
-  },
-  {
-    id: '3',
-    collectionName: 'Milady',
-    itemNumber: '7823',
-    floorPrice: 2.89,
-    offerAmount: 2.75,
-    offerTime: Date.now() - 1 * 60 * 60 * 1000, // 1 hour ago
-    network: 'ethereum'
-  },
-  {
-    id: '4',
-    collectionName: 'Checks',
-    itemNumber: '3467',
-    floorPrice: 3.45,
-    offerAmount: 3.2,
-    offerTime: Date.now() - 30 * 60 * 1000, // 30 mins ago
-    network: 'ethereum'
-  },
-  {
-    id: '5',
-    collectionName: 'Moonbirds',
-    itemNumber: '9124',
-    floorPrice: 3.85,
-    offerAmount: 3.7,
-    offerTime: Date.now() - 15 * 60 * 1000, // 15 mins ago
-    network: 'ethereum'
-  }
-];
-
 const ACCOUNT_SERVER = 'http://localhost:3001';
 
 function App() {
@@ -104,88 +26,38 @@ function App() {
 
   const [currentPage, setCurrentPage] = useState<'dashboard' | 'accounts' | 'settings'>('dashboard');
   const [isRunning, setIsRunning] = useState(false);
-  const [offers, setOffers] = useState<ActiveOffer[]>(SAMPLE_OFFERS);
-  const [nfts, setNfts] = useState<NFT[]>(SAMPLE_NFTS);
-  const [logs, setLogs] = useState<ActivityLog[]>([
-    {
-      id: '1',
-      timestamp: Date.now() - 15 * 60 * 1000, // 15 mins ago
-      message: 'Placed offer on DeGods #2156 for 8.75 ETH (2.2% below floor)',
-      type: 'info'
-    },
-    {
-      id: '2',
-      timestamp: Date.now() - 45 * 60 * 1000, // 45 mins ago
-      message: 'Offer accepted! Successfully purchased Checks #3467 for 3.2 ETH',
-      type: 'success'
-    },
-    {
-      id: '3',
-      timestamp: Date.now() - 90 * 60 * 1000, // 1.5 hours ago
-      message: 'Listed Moonbirds #9124 for 4.2 ETH',
-      type: 'info'
-    },
-    {
-      id: '4',
-      timestamp: Date.now() - 3 * 60 * 60 * 1000, // 3 hours ago
-      message: 'Offer expired for Pudgy Penguins #4521',
-      type: 'warning'
-    },
-    {
-      id: '5',
-      timestamp: Date.now() - 4 * 60 * 60 * 1000, // 4 hours ago
-      message: 'Floor price alert: Milady floor dropped 15% to 2.89 ETH',
-      type: 'info'
-    },
-    {
-      id: '6',
-      timestamp: Date.now() - 6 * 60 * 60 * 1000, // 6 hours ago
-      message: 'Scanning top 100 collections for potential opportunities...',
-      type: 'info'
-    }
-  ]);
+  const [offers, setOffers] = useState<ActiveOffer[]>([]);
+  const [nfts, setNfts] = useState<NFT[]>([]);
+  const [logs, setLogs] = useState<ActivityLog[]>([]);
 
   useEffect(() => {
-    const restoreAccounts = async () => {
+    const initializeAccounts = async () => {
       try {
-        const response = await fetch(`${ACCOUNT_SERVER}/restore`);
-        if (!response.ok) {
-          throw new Error('Failed to restore accounts');
-        }
-        
-        const data = await response.json();
-        const restoredAccounts = await Promise.all(
-          data.accounts.map(async (account: { type: 'privateKey' | 'seedPhrase', input: string }) => {
-            if (account.type === 'privateKey') {
-              const wallet = new Wallet(account.input);
-              return {
-                id: crypto.randomUUID(),
-                address: wallet.address,
-                type: 'privateKey'
-              };
-            } else {
-              // For seed phrase, you'd want to properly derive the address
-              return {
-                id: crypto.randomUUID(),
-                address: '0x...',
-                type: 'seedPhrase'
-              };
-            }
-          })
-        );
-        
-        setAccounts(restoredAccounts);
+        // Initialize with an empty array since we don't have a server yet
+        setAccounts([]);
       } catch (error) {
-        console.error('Error restoring accounts:', error);
+        console.error('Error initializing accounts:', error);
+        // Initialize with empty array on error
+        setAccounts([]);
       }
     };
 
-    restoreAccounts();
+    initializeAccounts();
   }, []);
 
   useEffect(() => {
     localStorage.setItem('settings', JSON.stringify(settings));
   }, [settings]);
+
+  const addLog = useCallback((message: string, type: ActivityLog['type'] = 'info') => {
+    const newLog: ActivityLog = {
+      id: Date.now().toString(),
+      timestamp: Date.now(),
+      message,
+      type,
+    };
+    setLogs(prev => [newLog, ...prev]);
+  }, []);
 
   const handleImport = ({ address, type }: { address: string; type: 'privateKey' | 'seedPhrase' }) => {
     const newAccount: Account = {
@@ -214,16 +86,6 @@ function App() {
     }
   };
 
-  const addLog = (message: string, type: ActivityLog['type'] = 'info') => {
-    const newLog: ActivityLog = {
-      id: crypto.randomUUID(),
-      timestamp: Date.now(),
-      message,
-      type,
-    };
-    setLogs(prev => [newLog, ...prev]);
-  };
-
   const handleStart = () => {
     setIsRunning(true);
     addLog('Activity generation started', 'success');
@@ -235,72 +97,68 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <img src="/opensea-logo.svg" alt="OpenSea" className="w-8 h-8" />
-              <h1 className="text-xl font-bold text-gray-900">OpenSea Activity Generator</h1>
+    <div className="min-h-screen bg-gray-100">
+      <nav className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex">
+              <div className="flex space-x-8">
+                <button
+                  onClick={() => setCurrentPage('dashboard')}
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                    currentPage === 'dashboard'
+                      ? 'border-indigo-500 text-gray-900'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  Dashboard
+                </button>
+                <button
+                  onClick={() => setCurrentPage('accounts')}
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                    currentPage === 'accounts'
+                      ? 'border-indigo-500 text-gray-900'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  Accounts
+                </button>
+                <button
+                  onClick={() => setCurrentPage('settings')}
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                    currentPage === 'settings'
+                      ? 'border-indigo-500 text-gray-900'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  Settings
+                </button>
+              </div>
             </div>
-            <nav className="flex space-x-4">
-              <button
-                onClick={() => setCurrentPage('dashboard')}
-                className={`px-4 py-2 rounded-lg flex items-center space-x-2 ${
-                  currentPage === 'dashboard'
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                <LayoutDashboard className="w-5 h-5" />
-                <span>Dashboard</span>
-              </button>
-              <button
-                onClick={() => setCurrentPage('accounts')}
-                className={`px-4 py-2 rounded-lg flex items-center space-x-2 ${
-                  currentPage === 'accounts'
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                <Wallet className="w-5 h-5" />
-                <span>Accounts</span>
-              </button>
-              <button
-                onClick={() => setCurrentPage('settings')}
-                className={`px-4 py-2 rounded-lg flex items-center space-x-2 ${
-                  currentPage === 'settings'
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                <SettingsIcon className="w-5 h-5" />
-                <span>Settings</span>
-              </button>
-            </nav>
           </div>
         </div>
-      </header>
+      </nav>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {currentPage === 'dashboard' ? (
+        {currentPage === 'dashboard' && (
           <DashboardPage
-            isRunning={isRunning}
-            onStart={handleStart}
-            onStop={handleStop}
-            logs={logs}
             settings={settings}
+            accounts={accounts}
+            logs={logs}
             nfts={nfts}
             offers={offers}
             onCancelOffer={handleCancelOffer}
+            onActivityLog={addLog}
           />
-        ) : currentPage === 'accounts' ? (
+        )}
+        {currentPage === 'accounts' && (
           <AccountsPage
             accounts={accounts}
             onImport={handleImport}
             onDeleteAccount={handleDelete}
           />
-        ) : (
+        )}
+        {currentPage === 'settings' && (
           <SettingsPage
             settings={settings}
             onSettingsChange={setSettings}
