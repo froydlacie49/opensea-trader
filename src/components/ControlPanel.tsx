@@ -11,25 +11,45 @@ interface ControlPanelProps {
 }
 
 export function ControlPanel({ onStart, onStop, isRunning, settings }: ControlPanelProps) {
-  const [elapsedTime, setElapsedTime] = useState(0);
+  const [elapsedTime, setElapsedTime] = useState<number>(0);
+  const [startTime, setStartTime] = useState<number | null>(null);
 
   useEffect(() => {
-    let interval: number;
+    let intervalId: NodeJS.Timeout | null = null;
+
     if (isRunning) {
-      interval = setInterval(() => {
-        setElapsedTime(prev => prev + 1);
+      // Set start time when automation starts
+      if (!startTime) {
+        setStartTime(Date.now());
+      }
+
+      // Update elapsed time every second
+      intervalId = setInterval(() => {
+        if (startTime) {
+          setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+        }
       }, 1000);
     } else {
+      // Reset timer when stopped
+      setStartTime(null);
       setElapsedTime(0);
     }
-    return () => clearInterval(interval);
-  }, [isRunning]);
 
-  const formatTime = (seconds: number) => {
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [isRunning, startTime]);
+
+  // Format elapsed time as HH:MM:SS
+  const formatTime = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const remainingSeconds = seconds % 60;
-    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+
+    const pad = (num: number): string => num.toString().padStart(2, '0');
+    return `${pad(hours)}:${pad(minutes)}:${pad(remainingSeconds)}`;
   };
 
   return (
